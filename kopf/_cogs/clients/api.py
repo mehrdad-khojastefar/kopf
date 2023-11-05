@@ -16,8 +16,8 @@ from kopf._cogs.helpers import typedefs
 
 @auth.authenticated
 async def get_default_namespace(
-        *,
-        context: Optional[auth.APIContext] = None,
+    *,
+    context: Optional[auth.APIContext] = None,
 ) -> Optional[str]:
     if context is None:
         raise RuntimeError("API instance is not injected by the decorator.")
@@ -26,37 +26,37 @@ async def get_default_namespace(
 
 @auth.authenticated
 async def read_sslcert(
-        *,
-        context: Optional[auth.APIContext] = None,
+    *,
+    context: Optional[auth.APIContext] = None,
 ) -> Tuple[str, bytes]:
     if context is None:
         raise RuntimeError("API instance is not injected by the decorator.")
 
     parsed = urllib.parse.urlparse(context.server)
-    host = parsed.hostname or ''  # NB: it cannot be None/empty in our case.
+    host = parsed.hostname or ""  # NB: it cannot be None/empty in our case.
     port = parsed.port or 443
     loop = asyncio.get_running_loop()
     cert = await loop.run_in_executor(None, ssl.get_server_certificate, (host, port))
-    return host, cert.encode('ascii')
+    return host, cert.encode("ascii")
 
 
 @auth.authenticated
 async def request(
-        method: str,
-        url: str,  # relative to the server/api root.
-        *,
-        settings: configuration.OperatorSettings,
-        payload: Optional[object] = None,
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[aiohttp.ClientTimeout] = None,
-        context: Optional[auth.APIContext] = None,  # injected by the decorator
-        logger: typedefs.Logger,
+    method: str,
+    url: str,  # relative to the server/api root.
+    *,
+    settings: configuration.OperatorSettings,
+    payload: Optional[object] = None,
+    headers: Optional[Mapping[str, str]] = None,
+    timeout: Optional[aiohttp.ClientTimeout] = None,
+    context: Optional[auth.APIContext] = None,  # injected by the decorator
+    logger: typedefs.Logger,
 ) -> aiohttp.ClientResponse:
     if context is None:  # for type-checking!
         raise RuntimeError("API instance is not injected by the decorator.")
 
-    if '://' not in url:
-        url = context.server.rstrip('/') + '/' + url.lstrip('/')
+    if "://" not in url:
+        url = context.server.rstrip("/") + "/" + url.lstrip("/")
 
     if timeout is None:
         timeout = aiohttp.ClientTimeout(
@@ -65,7 +65,9 @@ async def request(
         )
 
     backoffs = settings.networking.error_backoffs
-    backoffs = backoffs if isinstance(backoffs, collections.abc.Iterable) else [backoffs]
+    backoffs = (
+        backoffs if isinstance(backoffs, collections.abc.Iterable) else [backoffs]
+    )
     count = len(backoffs) + 1 if isinstance(backoffs, collections.abc.Sized) else None
     backoff: Optional[float]
     for retry, backoff in enumerate(itertools.chain(backoffs, [None]), start=1):
@@ -84,32 +86,41 @@ async def request(
             )
             await errors.check_response(response)  # but do not parse it!
 
-        except (aiohttp.ClientConnectionError, errors.APIServerError, asyncio.TimeoutError) as e:
+        except (
+            aiohttp.ClientConnectionError,
+            errors.APIServerError,
+            asyncio.TimeoutError,
+        ) as e:
             if backoff is None:  # i.e. the last or the only attempt.
-                logger.error(f"Request attempt {idx} failed; escalating: {what} -> {e!r}")
-                raise
+                logger.error(
+                    f"Request attempt {idx} failed; escalating: {what} -> {e!r}"
+                )
             else:
-                logger.error(f"Request attempt {idx} failed; will retry: {what} -> {e!r}")
+                logger.error(
+                    f"Request attempt {idx} failed; will retry: {what} -> {e!r}"
+                )
                 await asyncio.sleep(backoff)  # non-awakable! but still cancellable.
         else:
             if retry > 1:
                 logger.debug(f"Request attempt {idx} succeeded: {what}")
             return response
 
-    raise RuntimeError("Broken retryable routine.")  # impossible, but needed for type-checking.
+    raise RuntimeError(
+        "Broken retryable routine."
+    )  # impossible, but needed for type-checking.
 
 
 async def get(
-        url: str,  # relative to the server/api root.
-        *,
-        settings: configuration.OperatorSettings,
-        payload: Optional[object] = None,
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[aiohttp.ClientTimeout] = None,
-        logger: typedefs.Logger,
+    url: str,  # relative to the server/api root.
+    *,
+    settings: configuration.OperatorSettings,
+    payload: Optional[object] = None,
+    headers: Optional[Mapping[str, str]] = None,
+    timeout: Optional[aiohttp.ClientTimeout] = None,
+    logger: typedefs.Logger,
 ) -> Any:
     response = await request(
-        method='get',
+        method="get",
         url=url,
         payload=payload,
         headers=headers,
@@ -122,16 +133,16 @@ async def get(
 
 
 async def post(
-        url: str,  # relative to the server/api root.
-        *,
-        settings: configuration.OperatorSettings,
-        payload: Optional[object] = None,
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[aiohttp.ClientTimeout] = None,
-        logger: typedefs.Logger,
+    url: str,  # relative to the server/api root.
+    *,
+    settings: configuration.OperatorSettings,
+    payload: Optional[object] = None,
+    headers: Optional[Mapping[str, str]] = None,
+    timeout: Optional[aiohttp.ClientTimeout] = None,
+    logger: typedefs.Logger,
 ) -> Any:
     response = await request(
-        method='post',
+        method="post",
         url=url,
         payload=payload,
         headers=headers,
@@ -144,16 +155,16 @@ async def post(
 
 
 async def patch(
-        url: str,  # relative to the server/api root.
-        *,
-        settings: configuration.OperatorSettings,
-        payload: Optional[object] = None,
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[aiohttp.ClientTimeout] = None,
-        logger: typedefs.Logger,
+    url: str,  # relative to the server/api root.
+    *,
+    settings: configuration.OperatorSettings,
+    payload: Optional[object] = None,
+    headers: Optional[Mapping[str, str]] = None,
+    timeout: Optional[aiohttp.ClientTimeout] = None,
+    logger: typedefs.Logger,
 ) -> Any:
     response = await request(
-        method='patch',
+        method="patch",
         url=url,
         payload=payload,
         headers=headers,
@@ -166,16 +177,16 @@ async def patch(
 
 
 async def delete(
-        url: str,  # relative to the server/api root.
-        *,
-        settings: configuration.OperatorSettings,
-        payload: Optional[object] = None,
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[aiohttp.ClientTimeout] = None,
-        logger: typedefs.Logger,
+    url: str,  # relative to the server/api root.
+    *,
+    settings: configuration.OperatorSettings,
+    payload: Optional[object] = None,
+    headers: Optional[Mapping[str, str]] = None,
+    timeout: Optional[aiohttp.ClientTimeout] = None,
+    logger: typedefs.Logger,
 ) -> Any:
     response = await request(
-        method='delete',
+        method="delete",
         url=url,
         payload=payload,
         headers=headers,
@@ -188,17 +199,17 @@ async def delete(
 
 
 async def stream(
-        url: str,  # relative to the server/api root.
-        *,
-        settings: configuration.OperatorSettings,
-        payload: Optional[object] = None,
-        headers: Optional[Mapping[str, str]] = None,
-        timeout: Optional[aiohttp.ClientTimeout] = None,
-        stopper: Optional[aiotasks.Future] = None,
-        logger: typedefs.Logger,
+    url: str,  # relative to the server/api root.
+    *,
+    settings: configuration.OperatorSettings,
+    payload: Optional[object] = None,
+    headers: Optional[Mapping[str, str]] = None,
+    timeout: Optional[aiohttp.ClientTimeout] = None,
+    stopper: Optional[aiotasks.Future] = None,
+    logger: typedefs.Logger,
 ) -> AsyncIterator[Any]:
     response = await request(
-        method='get',
+        method="get",
         url=url,
         payload=payload,
         headers=headers,
@@ -206,13 +217,15 @@ async def stream(
         settings=settings,
         logger=logger,
     )
-    response_close_callback = lambda _: response.close()  # to remove the positional arg.
+    response_close_callback = (
+        lambda _: response.close()
+    )  # to remove the positional arg.
     if stopper is not None:
         stopper.add_done_callback(response_close_callback)
     try:
         async with response:
             async for line in iter_jsonlines(response.content):
-                yield json.loads(line.decode('utf-8'))
+                yield json.loads(line.decode("utf-8"))
     except aiohttp.ClientConnectionError:
         if stopper is not None and stopper.done():
             pass
@@ -224,8 +237,8 @@ async def stream(
 
 
 async def iter_jsonlines(
-        content: aiohttp.StreamReader,
-        chunk_size: int = 1024 * 1024,
+    content: aiohttp.StreamReader,
+    chunk_size: int = 1024 * 1024,
 ) -> AsyncIterator[bytes]:
     """
     Iterate line by line over the response's content.
@@ -256,20 +269,20 @@ async def iter_jsonlines(
 
     # Minimize the memory footprint by keeping at most 2 copies of a yielded line in memory
     # (in the buffer and as a yielded value), and at most 1 copy of other lines (in the buffer).
-    buffer = b''
+    buffer = b""
     async for data in content.iter_chunked(chunk_size):
         buffer += data
         del data
 
         start = 0
-        index = buffer.find(b'\n', start)
+        index = buffer.find(b"\n", start)
         while index >= 0:
             line = buffer[start:index]
             if line:
                 yield line
             del line
             start = index + 1
-            index = buffer.find(b'\n', start)
+            index = buffer.find(b"\n", start)
 
         if start > 0:
             buffer = buffer[start:]
