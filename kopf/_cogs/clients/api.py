@@ -64,53 +64,63 @@ async def request(
             sock_connect=settings.networking.connect_timeout,
         )
 
-    backoffs = settings.networking.error_backoffs
-    backoffs = (
-        backoffs if isinstance(backoffs, collections.abc.Iterable) else [backoffs]
-    )
-    count = len(backoffs) + 1 if isinstance(backoffs, collections.abc.Sized) else None
-    backoff: Optional[float]
-    for retry, backoff in enumerate(itertools.chain(backoffs, [None]), start=1):
-        idx = f"#{retry}/{count}" if count is not None else f"#{retry}"
-        what = f"{method.upper()} {url}"
-        try:
-            if retry > 1:
-                logger.debug(f"Request attempt {idx}: {what}")
+    if not settings.scanning.ignore_disabled:
+        backoffs = settings.networking.error_backoffs
+        backoffs = (
+            backoffs if isinstance(backoffs, collections.abc.Iterable) else [backoffs]
+        )
+        count = (
+            len(backoffs) + 1 if isinstance(backoffs, collections.abc.Sized) else None
+        )
+        backoff: Optional[float]
+        for retry, backoff in enumerate(itertools.chain(backoffs, [None]), start=1):
+            idx = f"#{retry}/{count}" if count is not None else f"#{retry}"
+            what = f"{method.upper()} {url}"
+            try:
+                if retry > 1:
+                    logger.debug(f"Request attempt {idx}: {what}")
 
-            response = await context.session.request(
-                method=method,
-                url=url,
-                json=payload,
-                headers=headers,
-                timeout=timeout,
-            )
-            await errors.check_response(response)  # but do not parse it!
-
-        except (
-            aiohttp.ClientConnectionError,
-            errors.APIServerError,
-            asyncio.TimeoutError,
-        ) as e:
-            if backoff is None:  # i.e. the last or the only attempt.
-                logger.error(
-                    f"Request attempt {idx} failed; escalating: {what} -> {e!r}"
+                response = await context.session.request(
+                    method=method,
+                    url=url,
+                    json=payload,
+                    headers=headers,
+                    timeout=timeout,
                 )
-                response.headers["Content-Type"] = "application/json"
-                response._body = b'{ "ignored": true }'
-                return response
+                await errors.check_response(response)  # but do not parse it!
+
+            except (
+                aiohttp.ClientConnectionError,
+                errors.APIServerError,
+                asyncio.TimeoutError,
+            ) as e:
+                if backoff is None:  # i.e. the last or the only attempt.
+                    logger.error(
+                        f"Request attempt {idx} failed; escalating: {what} -> {e!r}"
+                    )
+                    raise
+                else:
+                    logger.error(
+                        f"Request attempt {idx} failed; will retry: {what} -> {e!r}"
+                    )
+                    await asyncio.sleep(backoff)  # non-awakable! but still cancellable.
             else:
-                logger.error(
-                    f"Request attempt {idx} failed; will retry: {what} -> {e!r}"
-                )
-                await asyncio.sleep(backoff)  # non-awakable! but still cancellable.
-        else:
-            if retry > 1:
-                logger.debug(f"Request attempt {idx} succeeded: {what}")
-            return response
+                if retry > 1:
+                    logger.debug(f"Request attempt {idx} succeeded: {what}")
+                return response
 
-    raise RuntimeError(
-        "Broken retryable routine."
-    )  # impossible, but needed for type-checking.
+        raise RuntimeError(
+            "Broken retryable routine."
+        )  # impossible, but needed for type-checking.
+    else:  # drops the request
+        response = await context.session.request(
+            method=method,
+            url=url,
+            json=payload,
+            headers=headers,
+            timeout=timeout,
+        )
+        return response
 
 
 async def get(

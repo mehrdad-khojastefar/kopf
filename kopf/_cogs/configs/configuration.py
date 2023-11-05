@@ -61,7 +61,6 @@ class ProcessSettings:
 
 @dataclasses.dataclass
 class PostingSettings:
-
     enabled: bool = True
     """
     Should the log messages be sent as Kubernetes Events for an object.
@@ -80,15 +79,14 @@ class PostingSettings:
     (``kopf.info()``, ``kopf.warn()``, ``kopf.exception()``).
     """
 
-    reporting_component: str = 'kopf'
-    reporting_instance: str = 'dev'
-    event_name_prefix: str = 'kopf-event-'
+    reporting_component: str = "kopf"
+    reporting_instance: str = "dev"
+    event_name_prefix: str = "kopf-event-"
 
 
 @dataclasses.dataclass
 class PeeringSettings:
-
-    name: str = 'default'
+    name: str = "default"
     """
     The name of the peering object to use.
     Distinct peering objects are isolated peering neighbourhoods,
@@ -158,7 +156,7 @@ class PeeringSettings:
 
     @property
     def namespaced(self) -> bool:
-        """ An inverse of ``clusterwide``, for code readability. """
+        """An inverse of ``clusterwide``, for code readability."""
         return not self.clusterwide
 
     @namespaced.setter
@@ -168,7 +166,6 @@ class PeeringSettings:
 
 @dataclasses.dataclass
 class WatchingSettings:
-
     server_timeout: Optional[float] = None
     """
     The maximum duration of one streaming request. Patched in some tests.
@@ -220,7 +217,23 @@ class BatchingSettings:
     This is the time given to the worker to deplete and process the queue.
     """
 
-    error_delays: Iterable[float] = (1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610)
+    error_delays: Iterable[float] = (
+        1,
+        1,
+        2,
+        3,
+        5,
+        8,
+        13,
+        21,
+        34,
+        55,
+        89,
+        144,
+        233,
+        377,
+        610,
+    )
     """
     Backoff intervals in case of unexpected errors in the framework.
 
@@ -251,11 +264,11 @@ class ScanningSettings:
     The default mode is good enough for most cases, unless the strict
     (non-dynamic) mode is intended -- to prevent the warnings in the logs.
     """
+    ignore_disabled: bool = True
 
 
 @dataclasses.dataclass
 class AdmissionSettings:
-
     server: Optional[reviews.WebhookServerProtocol] = None
     """
     A way of accepting admission requests from Kubernetes.
@@ -301,7 +314,8 @@ class ExecutionSettings:
     """
 
     executor: concurrent.futures.Executor = dataclasses.field(
-        default_factory=concurrent.futures.ThreadPoolExecutor)
+        default_factory=concurrent.futures.ThreadPoolExecutor
+    )
     """
     The executor to be used for synchronous handler invocation.
 
@@ -326,7 +340,7 @@ class ExecutionSettings:
             raise ValueError("Can't set thread pool limit lower than 1.")
         self._max_workers = value
 
-        if hasattr(self.executor, '_max_workers'):
+        if hasattr(self.executor, "_max_workers"):
             self.executor._max_workers = value
         else:
             raise TypeError("Current executor does not support `max_workers`.")
@@ -334,7 +348,6 @@ class ExecutionSettings:
 
 @dataclasses.dataclass
 class NetworkingSettings:
-
     request_timeout: Optional[float] = 5 * 60  # == aiohttp.client.DEFAULT_TIMEOUT
     """
     A timeout for the entire duration of an API request (in seconds).
@@ -359,21 +372,22 @@ class NetworkingSettings:
 
 @dataclasses.dataclass
 class PersistenceSettings:
-
-    finalizer: str = 'kopf.zalando.org/KopfFinalizerMarker'
+    finalizer: str = "kopf.zalando.org/KopfFinalizerMarker"
     """
     A string marker to be put on a list of finalizers to block the object
     from being deleted without framework's/operator's permission.
     """
 
     progress_storage: progress.ProgressStorage = dataclasses.field(
-        default_factory=progress.SmartProgressStorage)
+        default_factory=progress.SmartProgressStorage
+    )
     """
     How to persist the handlers' state between multiple handling cycles.
     """
 
     diffbase_storage: diffbase.DiffBaseStorage = dataclasses.field(
-        default_factory=diffbase.AnnotationsDiffBaseStorage)
+        default_factory=diffbase.AnnotationsDiffBaseStorage
+    )
     """
     How the resource's essence (non-technical, contentful fields) are stored.
     """
@@ -446,8 +460,14 @@ class OperatorSettings:
     watching: WatchingSettings = dataclasses.field(default_factory=WatchingSettings)
     batching: BatchingSettings = dataclasses.field(default_factory=BatchingSettings)
     scanning: ScanningSettings = dataclasses.field(default_factory=ScanningSettings)
-    admission: AdmissionSettings =dataclasses.field(default_factory=AdmissionSettings)
+    admission: AdmissionSettings = dataclasses.field(default_factory=AdmissionSettings)
     execution: ExecutionSettings = dataclasses.field(default_factory=ExecutionSettings)
-    background: BackgroundSettings = dataclasses.field(default_factory=BackgroundSettings)
-    networking: NetworkingSettings = dataclasses.field(default_factory=NetworkingSettings)
-    persistence: PersistenceSettings = dataclasses.field(default_factory=PersistenceSettings)
+    background: BackgroundSettings = dataclasses.field(
+        default_factory=BackgroundSettings
+    )
+    networking: NetworkingSettings = dataclasses.field(
+        default_factory=NetworkingSettings
+    )
+    persistence: PersistenceSettings = dataclasses.field(
+        default_factory=PersistenceSettings
+    )
