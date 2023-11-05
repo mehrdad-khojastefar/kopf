@@ -95,6 +95,7 @@ async def request(
                 logger.error(
                     f"Request attempt {idx} failed; escalating: {what} -> {e!r}"
                 )
+                return aiohttp.ClientResponse()
             else:
                 logger.error(
                     f"Request attempt {idx} failed; will retry: {what} -> {e!r}"
@@ -104,6 +105,10 @@ async def request(
             if retry > 1:
                 logger.debug(f"Request attempt {idx} succeeded: {what}")
             return response
+
+    raise RuntimeError(
+        "Broken retryable routine."
+    )  # impossible, but needed for type-checking.
 
 
 async def get(
