@@ -8,19 +8,19 @@ from kopf._cogs.structs import references
 
 
 async def read_version(
-        *,
-        settings: configuration.OperatorSettings,
-        logger: typedefs.Logger,
+    *,
+    settings: configuration.OperatorSettings,
+    logger: typedefs.Logger,
 ) -> Mapping[str, str]:
-    rsp: Mapping[str, str] = await api.get('/version', settings=settings, logger=logger)
+    rsp: Mapping[str, str] = await api.get("/version", settings=settings, logger=logger)
     return rsp
 
 
 async def scan_resources(
-        *,
-        settings: configuration.OperatorSettings,
-        logger: typedefs.Logger,
-        groups: Optional[Collection[str]] = None,
+    *,
+    settings: configuration.OperatorSettings,
+    logger: typedefs.Logger,
+    groups: Optional[Collection[str]] = None,
 ) -> Collection[references.Resource]:
     coros = {
         _read_old_api(groups=groups, settings=settings, logger=logger),
@@ -33,65 +33,68 @@ async def scan_resources(
 
 
 async def _read_old_api(
-        *,
-        settings: configuration.OperatorSettings,
-        logger: typedefs.Logger,
-        groups: Optional[Collection[str]],
+    *,
+    settings: configuration.OperatorSettings,
+    logger: typedefs.Logger,
+    groups: Optional[Collection[str]],
 ) -> Collection[references.Resource]:
     resources: Set[references.Resource] = set()
-    if groups is None or '' in groups:
-        rsp = await api.get('/api', settings=settings, logger=logger)
-        coros = {
-            _read_version(
-                url=f'/api/{version_name}',
-                group='',
-                version=version_name,
-                preferred=True,
-                settings=settings,
-                logger=logger,
-            )
-            for version_name in rsp['versions']
-        }
-        for coro in asyncio.as_completed(coros):
-            resources.update(await coro)
-    return resources
+    if groups is None or "" in groups:
+        rsp = await api.get("/api", settings=settings, logger=logger)
+        if rsp:
+            coros = {
+                _read_version(
+                    url=f"/api/{version_name}",
+                    group="",
+                    version=version_name,
+                    preferred=True,
+                    settings=settings,
+                    logger=logger,
+                )
+                for version_name in rsp["versions"]
+            }
+            for coro in asyncio.as_completed(coros):
+                resources.update(await coro)
+        return resources
 
 
 async def _read_new_apis(
-        *,
-        settings: configuration.OperatorSettings,
-        logger: typedefs.Logger,
-        groups: Optional[Collection[str]],
+    *,
+    settings: configuration.OperatorSettings,
+    logger: typedefs.Logger,
+    groups: Optional[Collection[str]],
 ) -> Collection[references.Resource]:
     resources: Set[references.Resource] = set()
-    if groups is None or set(groups or {}) - {''}:
-        rsp = await api.get('/apis', settings=settings, logger=logger)
-        items = [d for d in rsp['groups'] if groups is None or d['name'] in groups]
-        coros = {
-            _read_version(
-                url=f'/apis/{group_dat["name"]}/{version["version"]}',
-                group=group_dat['name'],
-                version=version['version'],
-                preferred=version['version'] == group_dat['preferredVersion']['version'],
-                settings=settings,
-                logger=logger,
-            )
-            for group_dat in items
-            for version in group_dat['versions']
-        }
-        for coro in asyncio.as_completed(coros):
-            resources.update(await coro)
-    return resources
+    if groups is None or set(groups or {}) - {""}:
+        rsp = await api.get("/apis", settings=settings, logger=logger)
+        if rsp:
+            items = [d for d in rsp["groups"] if groups is None or d["name"] in groups]
+            coros = {
+                _read_version(
+                    url=f'/apis/{group_dat["name"]}/{version["version"]}',
+                    group=group_dat["name"],
+                    version=version["version"],
+                    preferred=version["version"]
+                    == group_dat["preferredVersion"]["version"],
+                    settings=settings,
+                    logger=logger,
+                )
+                for group_dat in items
+                for version in group_dat["versions"]
+            }
+            for coro in asyncio.as_completed(coros):
+                resources.update(await coro)
+        return resources
 
 
 async def _read_version(
-        *,
-        url: str,
-        group: str,
-        version: str,
-        preferred: bool,
-        settings: configuration.OperatorSettings,
-        logger: typedefs.Logger,
+    *,
+    url: str,
+    group: str,
+    version: str,
+    preferred: bool,
+    settings: configuration.OperatorSettings,
+    logger: typedefs.Logger,
 ) -> Collection[references.Resource]:
     try:
         rsp = await api.get(url, settings=settings, logger=logger)
@@ -106,20 +109,20 @@ async def _read_version(
             references.Resource(
                 group=group,
                 version=version,
-                kind=resource['kind'],
-                plural=resource['name'],
-                singular=resource['singularName'] or resource['kind'].lower(),
-                shortcuts=frozenset(resource.get('shortNames', [])),
-                categories=frozenset(resource.get('categories', [])),
+                kind=resource["kind"],
+                plural=resource["name"],
+                singular=resource["singularName"] or resource["kind"].lower(),
+                shortcuts=frozenset(resource.get("shortNames", [])),
+                categories=frozenset(resource.get("categories", [])),
                 subresources=frozenset(
-                    subresource['name'].split('/', 1)[-1]
-                    for subresource in rsp.get('resources', [])
-                    if subresource['name'].startswith(f'{resource["name"]}/')
+                    subresource["name"].split("/", 1)[-1]
+                    for subresource in rsp.get("resources", [])
+                    if subresource["name"].startswith(f'{resource["name"]}/')
                 ),
-                namespaced=resource['namespaced'],
+                namespaced=resource["namespaced"],
                 preferred=preferred,
-                verbs=frozenset(resource.get('verbs') or []),
+                verbs=frozenset(resource.get("verbs") or []),
             )
-            for resource in rsp.get('resources', [])
-            if '/' not in resource['name']
+            for resource in rsp.get("resources", [])
+            if "/" not in resource["name"]
         }

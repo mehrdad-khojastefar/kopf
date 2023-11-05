@@ -51,7 +51,7 @@ async def request(
     timeout: Optional[aiohttp.ClientTimeout] = None,
     context: Optional[auth.APIContext] = None,  # injected by the decorator
     logger: typedefs.Logger,
-) -> aiohttp.ClientResponse:
+) -> aiohttp.ClientResponse | None:
     if context is None:  # for type-checking!
         raise RuntimeError("API instance is not injected by the decorator.")
 
