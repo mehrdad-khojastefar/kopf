@@ -105,10 +105,6 @@ async def request(
                 logger.debug(f"Request attempt {idx} succeeded: {what}")
             return response
 
-    raise RuntimeError(
-        "Broken retryable routine."
-    )  # impossible, but needed for type-checking.
-
 
 async def get(
     url: str,  # relative to the server/api root.
