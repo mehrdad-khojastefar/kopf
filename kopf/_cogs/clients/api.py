@@ -113,14 +113,7 @@ async def request(
             "Broken retryable routine."
         )  # impossible, but needed for type-checking.
     else:  # drops the request
-        response = await context.session.request(
-            method=method,
-            url=url,
-            json=payload,
-            headers=headers,
-            timeout=timeout,
-        )
-        return response
+        pass
 
 
 async def get(
