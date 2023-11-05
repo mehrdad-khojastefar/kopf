@@ -64,36 +64,34 @@ async def request(
             sock_connect=settings.networking.connect_timeout,
         )
 
-    if not settings.scanning.ignore_disabled:
-        backoffs = settings.networking.error_backoffs
-        backoffs = (
-            backoffs if isinstance(backoffs, collections.abc.Iterable) else [backoffs]
-        )
-        count = (
-            len(backoffs) + 1 if isinstance(backoffs, collections.abc.Sized) else None
-        )
-        backoff: Optional[float]
-        for retry, backoff in enumerate(itertools.chain(backoffs, [None]), start=1):
-            idx = f"#{retry}/{count}" if count is not None else f"#{retry}"
-            what = f"{method.upper()} {url}"
-            try:
-                if retry > 1:
-                    logger.debug(f"Request attempt {idx}: {what}")
+    backoffs = settings.networking.error_backoffs
+    backoffs = (
+        backoffs if isinstance(backoffs, collections.abc.Iterable) else [backoffs]
+    )
+    count = len(backoffs) + 1 if isinstance(backoffs, collections.abc.Sized) else None
+    backoff: Optional[float]
+    for retry, backoff in enumerate(itertools.chain(backoffs, [None]), start=1):
+        idx = f"#{retry}/{count}" if count is not None else f"#{retry}"
+        what = f"{method.upper()} {url}"
+        try:
+            if retry > 1:
+                logger.debug(f"Request attempt {idx}: {what}")
 
-                response = await context.session.request(
-                    method=method,
-                    url=url,
-                    json=payload,
-                    headers=headers,
-                    timeout=timeout,
-                )
-                await errors.check_response(response)  # but do not parse it!
+            response = await context.session.request(
+                method=method,
+                url=url,
+                json=payload,
+                headers=headers,
+                timeout=timeout,
+            )
+            await errors.check_response(response)  # but do not parse it!
 
-            except (
-                aiohttp.ClientConnectionError,
-                errors.APIServerError,
-                asyncio.TimeoutError,
-            ) as e:
+        except (
+            aiohttp.ClientConnectionError,
+            errors.APIServerError,
+            asyncio.TimeoutError,
+        ) as e:
+            if not settings.scanning.ignore_disabled:
                 if backoff is None:  # i.e. the last or the only attempt.
                     logger.error(
                         f"Request attempt {idx} failed; escalating: {what} -> {e!r}"
@@ -105,15 +103,15 @@ async def request(
                     )
                     await asyncio.sleep(backoff)  # non-awakable! but still cancellable.
             else:
-                if retry > 1:
-                    logger.debug(f"Request attempt {idx} succeeded: {what}")
-                return response
+                return None
+        else:
+            if retry > 1:
+                logger.debug(f"Request attempt {idx} succeeded: {what}")
+            return response
 
-        raise RuntimeError(
-            "Broken retryable routine."
-        )  # impossible, but needed for type-checking.
-    else:  # drops the request
-        pass
+    raise RuntimeError(
+        "Broken retryable routine."
+    )  # impossible, but needed for type-checking.
 
 
 async def get(
