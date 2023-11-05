@@ -95,6 +95,8 @@ async def request(
                 logger.error(
                     f"Request attempt {idx} failed; escalating: {what} -> {e!r}"
                 )
+                response.headers["Content-Type"] = "application/json"
+                response._body = b'{ "ignored": true }'
                 return response
             else:
                 logger.error(
