@@ -105,6 +105,8 @@ async def _read_version(
     else:
         # Note: builtins' singulars are empty strings in K3s (reasons unknown):
         # fall back to the lowercased kind so that the selectors could match.
+        if not rsp:
+            return set()
         return {
             references.Resource(
                 group=group,
