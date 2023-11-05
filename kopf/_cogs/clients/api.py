@@ -95,21 +95,6 @@ async def request(
                 logger.error(
                     f"Request attempt {idx} failed; escalating: {what} -> {e!r}"
                 )
-                response = aiohttp.ClientResponse(
-                    method="get",
-                    url=url,
-                    request_info=None,
-                    writer=None,
-                    continue100=None,
-                    timer=None,
-                    traces=None,
-                    loop=None,
-                    session=None,
-                )
-                response.status = 200
-                response.reason = "OK"
-                response._body = b""
-                response._headers._headers = []
                 return response
             else:
                 logger.error(
