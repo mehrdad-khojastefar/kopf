@@ -264,7 +264,7 @@ class ScanningSettings:
     The default mode is good enough for most cases, unless the strict
     (non-dynamic) mode is intended -- to prevent the warnings in the logs.
     """
-    ignore_disabled: bool = True
+    ignore_disabled: bool = False
 
 
 @dataclasses.dataclass

@@ -134,8 +134,9 @@ async def get(
         settings=settings,
         logger=logger,
     )
-    async with response:
-        return await response.json()
+    if response:
+        async with response:
+            return await response.json()
 
 
 async def post(
@@ -156,8 +157,9 @@ async def post(
         settings=settings,
         logger=logger,
     )
-    async with response:
-        return await response.json()
+    if response:
+        async with response:
+            return await response.json()
 
 
 async def patch(
@@ -178,8 +180,9 @@ async def patch(
         settings=settings,
         logger=logger,
     )
-    async with response:
-        return await response.json()
+    if response:
+        async with response:
+            return await response.json()
 
 
 async def delete(
@@ -200,8 +203,9 @@ async def delete(
         settings=settings,
         logger=logger,
     )
-    async with response:
-        return await response.json()
+    if response:
+        async with response:
+            return await response.json()
 
 
 async def stream(
@@ -223,23 +227,24 @@ async def stream(
         settings=settings,
         logger=logger,
     )
-    response_close_callback = (
-        lambda _: response.close()
-    )  # to remove the positional arg.
-    if stopper is not None:
-        stopper.add_done_callback(response_close_callback)
-    try:
-        async with response:
-            async for line in iter_jsonlines(response.content):
-                yield json.loads(line.decode("utf-8"))
-    except aiohttp.ClientConnectionError:
-        if stopper is not None and stopper.done():
-            pass
-        else:
-            raise
-    finally:
+    if response:
+        response_close_callback = (
+            lambda _: response.close()
+        )  # to remove the positional arg.
         if stopper is not None:
-            stopper.remove_done_callback(response_close_callback)
+            stopper.add_done_callback(response_close_callback)
+        try:
+            async with response:
+                async for line in iter_jsonlines(response.content):
+                    yield json.loads(line.decode("utf-8"))
+        except aiohttp.ClientConnectionError:
+            if stopper is not None and stopper.done():
+                pass
+            else:
+                raise
+        finally:
+            if stopper is not None:
+                stopper.remove_done_callback(response_close_callback)
 
 
 async def iter_jsonlines(
