@@ -103,7 +103,7 @@ async def request(
                     )
                     await asyncio.sleep(backoff)  # non-awakable! but still cancellable.
             else:
-                return None
+                return response
         else:
             if retry > 1:
                 logger.debug(f"Request attempt {idx} succeeded: {what}")
