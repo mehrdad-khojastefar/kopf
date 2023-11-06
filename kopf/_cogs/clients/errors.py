@@ -60,14 +60,13 @@ class RawStatus(TypedDict):
 
 
 class APIError(Exception):
-
     def __init__(
-            self,
-            payload: Optional[RawStatus],
-            *,
-            status: int,
+        self,
+        payload: Optional[RawStatus],
+        *,
+        status: int,
     ) -> None:
-        message = payload.get('message') if payload else None
+        message = payload.get("message") if payload else None
         super().__init__(message, payload)
         self._status = status
         self._payload = payload
@@ -78,15 +77,15 @@ class APIError(Exception):
 
     @property
     def code(self) -> Optional[int]:
-        return self._payload.get('code') if self._payload else None
+        return self._payload.get("code") if self._payload else None
 
     @property
     def message(self) -> Optional[str]:
-        return self._payload.get('message') if self._payload else None
+        return self._payload.get("message") if self._payload else None
 
     @property
     def details(self) -> Optional[RawStatusDetails]:
-        return self._payload.get('details') if self._payload else None
+        return self._payload.get("details") if self._payload else None
 
 
 class APIClientError(APIError):  # all 4xx
@@ -114,32 +113,44 @@ class APIConflictError(APIClientError):
 
 
 async def check_response(
-        response: aiohttp.ClientResponse,
+    response: aiohttp.ClientResponse,
 ) -> None:
     """
     Check for specialised K8s errors, and raise with extended information.
     """
     if response.status >= 400:
-
         # Read the response's body before it is closed by raise_for_status().
         payload: Optional[RawStatus]
         try:
             payload = await response.json()
-        except (json.JSONDecodeError, aiohttp.ContentTypeError, aiohttp.ClientConnectionError):
+        except (
+            json.JSONDecodeError,
+            aiohttp.ContentTypeError,
+            aiohttp.ClientConnectionError,
+        ):
             payload = None
 
         # Better be safe: who knows which sensitive information can be dumped unless kind==Status.
-        if not isinstance(payload, collections.abc.Mapping) or payload.get('kind') != 'Status':
+        if (
+            not isinstance(payload, collections.abc.Mapping)
+            or payload.get("kind") != "Status"
+        ):
             payload = None
 
         cls = (
-            APIUnauthorizedError if response.status == 401 else
-            APIForbiddenError if response.status == 403 else
-            APINotFoundError if response.status == 404 else
-            APIConflictError if response.status == 409 else
-            APIClientError if 400 <= response.status < 500 else
-            APIServerError if 500 <= response.status < 600 else
-            APIError
+            APIUnauthorizedError
+            if response.status == 401
+            else APIForbiddenError
+            if response.status == 403
+            else APINotFoundError
+            if response.status == 404
+            else APIConflictError
+            if response.status == 409
+            else APIClientError
+            if 400 <= response.status < 500
+            else APIServerError
+            if 500 <= response.status < 600
+            else APIError
         )
 
         # Raise the framework-specific error while keeping the original error in scope.

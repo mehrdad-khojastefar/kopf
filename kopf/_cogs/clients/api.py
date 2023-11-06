@@ -106,7 +106,7 @@ async def request(
             else:
                 if response.status != 503:
                     return response
-                raise
+                return None
         else:
             if retry > 1:
                 logger.debug(f"Request attempt {idx} succeeded: {what}")
