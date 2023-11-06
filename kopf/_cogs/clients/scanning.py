@@ -97,7 +97,12 @@ async def _read_version(
     logger: typedefs.Logger,
 ) -> Collection[references.Resource]:
     try:
-        rsp = await api.get(url, settings=settings, logger=logger)
+        rsp = await api.get(
+            url,
+            settings=settings,
+            logger=logger,
+            ignore_failures=settings.scanning.ignore_disabled,
+        )
     except errors.APINotFoundError:
         # This happens when the last and the only resource of a group/version
         # has been deleted, the whole group/version is gone, and we rescan it.

@@ -51,6 +51,7 @@ async def request(
     timeout: Optional[aiohttp.ClientTimeout] = None,
     context: Optional[auth.APIContext] = None,  # injected by the decorator
     logger: typedefs.Logger,
+    ignore_failures: Optional[bool] = False,
 ) -> aiohttp.ClientResponse | None:
     if context is None:  # for type-checking!
         raise RuntimeError("API instance is not injected by the decorator.")
@@ -91,7 +92,7 @@ async def request(
             errors.APIServerError,
             asyncio.TimeoutError,
         ) as e:
-            if not settings.scanning.ignore_disabled:
+            if not ignore_failures:
                 if backoff is None:  # i.e. the last or the only attempt.
                     logger.error(
                         f"Request attempt {idx} failed; escalating: {what} -> {e!r}"
@@ -103,9 +104,7 @@ async def request(
                     )
                     await asyncio.sleep(backoff)  # non-awakable! but still cancellable.
             else:
-                if response.status == 503:
-                    return None
-                raise
+                return None
         else:
             if retry > 1:
                 logger.debug(f"Request attempt {idx} succeeded: {what}")
@@ -124,6 +123,7 @@ async def get(
     headers: Optional[Mapping[str, str]] = None,
     timeout: Optional[aiohttp.ClientTimeout] = None,
     logger: typedefs.Logger,
+    ignore_failures: Optional[bool] = False,
 ) -> Any:
     response = await request(
         method="get",
@@ -133,6 +133,7 @@ async def get(
         timeout=timeout,
         settings=settings,
         logger=logger,
+        ignore_failures=ignore_failures,
     )
     if response:
         async with response:
@@ -147,6 +148,7 @@ async def post(
     headers: Optional[Mapping[str, str]] = None,
     timeout: Optional[aiohttp.ClientTimeout] = None,
     logger: typedefs.Logger,
+    ignore_failures: Optional[bool] = False,
 ) -> Any:
     response = await request(
         method="post",
@@ -156,6 +158,7 @@ async def post(
         timeout=timeout,
         settings=settings,
         logger=logger,
+        ignore_failures=ignore_failures,
     )
     if response:
         async with response:
@@ -170,6 +173,7 @@ async def patch(
     headers: Optional[Mapping[str, str]] = None,
     timeout: Optional[aiohttp.ClientTimeout] = None,
     logger: typedefs.Logger,
+    ignore_failures: Optional[bool] = False,
 ) -> Any:
     response = await request(
         method="patch",
@@ -179,6 +183,7 @@ async def patch(
         timeout=timeout,
         settings=settings,
         logger=logger,
+        ignore_failures=ignore_failures,
     )
     if response:
         async with response:
@@ -193,6 +198,7 @@ async def delete(
     headers: Optional[Mapping[str, str]] = None,
     timeout: Optional[aiohttp.ClientTimeout] = None,
     logger: typedefs.Logger,
+    ignore_failures: Optional[bool] = False,
 ) -> Any:
     response = await request(
         method="delete",
@@ -202,6 +208,7 @@ async def delete(
         timeout=timeout,
         settings=settings,
         logger=logger,
+        ignore_failures=ignore_failures,
     )
     if response:
         async with response:
@@ -217,6 +224,7 @@ async def stream(
     timeout: Optional[aiohttp.ClientTimeout] = None,
     stopper: Optional[aiotasks.Future] = None,
     logger: typedefs.Logger,
+    ignore_failures: Optional[bool] = False,
 ) -> AsyncIterator[Any]:
     response = await request(
         method="get",
@@ -226,6 +234,7 @@ async def stream(
         timeout=timeout,
         settings=settings,
         logger=logger,
+        ignore_failures=ignore_failures,
     )
     if response:
         response_close_callback = (
