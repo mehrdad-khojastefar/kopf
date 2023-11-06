@@ -105,7 +105,7 @@ async def request(
             else:
                 if response.headers.get("Content-Type") != "application/json":
                     return None
-                return response
+                raise
         else:
             if retry > 1:
                 logger.debug(f"Request attempt {idx} succeeded: {what}")
