@@ -103,6 +103,8 @@ async def request(
                     )
                     await asyncio.sleep(backoff)  # non-awakable! but still cancellable.
             else:
+                if response.headers.get("Content-Type") != "application/json":
+                    return None
                 return response
         else:
             if retry > 1:
